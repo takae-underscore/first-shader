@@ -17,10 +17,13 @@ uniform mat4 shadowModelView;
 uniform mat4 shadowProjection;
 uniform float viewWidth;
 uniform float viewHeight;
+uniform int worldTime;
 
-const vec3 blocklightColor = vec3(1.0, 0.5, 0.08);
-const vec3 skylightColor = vec3(0.05, 0.15, 0.3);
+const vec3 blocklightColor = vec3(1.0, 0.4, 0.3);
+const vec3 dayColor = vec3(0.05, 0.15, 0.3);
+const vec3 nightColor = vec3(0.0, 0.05, 0.8);
 const vec3 sunlightColor = vec3(1.0);
+const vec3 moonlightColor = vec3(0.4, 0.5, 0.6);
 const vec3 ambientColor = vec3(0.1);
 const float shadowDistanceRenderMul = 1.0;
 
@@ -30,6 +33,12 @@ in vec2 texcoord;
 #include "/lib/projectAndDivide.glsl"
 #define SHADOW_RADIUS 1
 #define SHADOW_RANGE 4
+#define SUNLIGHT_INTENSITY 2.5
+#define SKYLIGHT_INTENSITY 2.5
+#define SKYLIGHT_INTENSITY_NIGHT 0.2
+#define BLOCKLIGHT_INTENSITY 1
+#define AMBIENT_INTENSITY 0.1
+#define MOONLIGHT_INTENSITY 0.2
 
 vec3 getShadow(vec3 shadowScreenPos) {
   float transparentShadow = step(shadowScreenPos.z, texture(shadowtex0, shadowScreenPos.xy).r);
@@ -121,11 +130,20 @@ void main() {
   vec3 shadow = getSoftShadow(shadowClipPos);
   
   // calculate lighting
+  vec3 worldlightColor = sunlightColor;
+  vec3 worldlight = worldlightColor * clamp(dot(worldLightVector, normal), 0.0, 1.0) * shadow;
+  float skylightIntensity = SKYLIGHT_INTENSITY;
+  float worldlightIntensity = SUNLIGHT_INTENSITY;
+  vec3 skylightColor = dayColor;
+  if((worldTime >= 12785) && (worldTime < 23215)) {
+    worldlightColor = moonlightColor;
+    worldlightIntensity = MOONLIGHT_INTENSITY;
+    skylightColor = nightColor;
+    skylightIntensity = SKYLIGHT_INTENSITY_NIGHT;
+  }
   vec3 blocklight = lightmap.r * blocklightColor;
   vec3 skylight = lightmap.g * skylightColor;
   vec3 ambient = ambientColor;
-  vec3 sunlight = sunlightColor * clamp(dot(worldLightVector, normal), 0.0, 1.0) * shadow;
 
-  color.rgb *= blocklight + skylight + ambient + sunlight;
-  //color.rgb = pow(texture(colortex2, texcoord).rgb, vec3(2.2));
+  color.rgb *= BLOCKLIGHT_INTENSITY * blocklight + skylightIntensity * skylight + AMBIENT_INTENSITY * ambient + worldlightIntensity * worldlight;
 }

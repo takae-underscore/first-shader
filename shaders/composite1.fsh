@@ -29,7 +29,7 @@ void main() {
   vec3 viewPos = projectAndDivide(gbufferProjectionInverse, NDCPos);
 
   float dist = length(viewPos) / far;
-  float fogFactor = exp(-FOG_DENSITY * (1.0 - dist));
+  float fogFactor = pow(dist, FOG_DENSITY);
   
   color.rgb = mix(color.rgb, pow(fogColor, vec3(2.2)), clamp(fogFactor, 0.0, 1.0));
 }
