@@ -10,6 +10,9 @@ uniform float viewWidth;
 
 in vec4 glcolor;
 
+#define SUN_RADIANCE 12
+#define SUN_BRIGHTNESS 20
+
 /* RENDERTARGETS: 0 */
 layout(location = 0) out vec4 color;
 
@@ -25,7 +28,8 @@ void main() {
   vec3 eyePlayerPos = mat3(gbufferModelViewInverse) * viewPos;
   float skyPos = normalize(eyePlayerPos).y;
   float fogFactor = 1.0;
-
+  vec3 skycolor = skyColor;
+  
   if(renderStage == MC_RENDER_STAGE_STARS) {
     color = glcolor;
   }
@@ -33,6 +37,6 @@ void main() {
     if(skyPos > 0.0) {
       fogFactor = 0.07 / (skyPos * skyPos + 0.07);
     }
-    color.rgb = mix(skyColor, fogColor, fogFactor);
+    color.rgb = mix(skycolor, fogColor, fogFactor);
   }
 }

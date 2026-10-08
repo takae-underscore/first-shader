@@ -20,10 +20,12 @@ uniform float viewHeight;
 uniform int worldTime;
 
 const vec3 blocklightColor = vec3(1.0, 0.4, 0.3);
-const vec3 dayColor = vec3(0.05, 0.15, 0.3);
-const vec3 nightColor = vec3(0.0, 0.05, 0.8);
+const vec3 morningColor = vec3(0.05, 0.15, 0.3);
+const vec3 noonColor = vec3(0.14, 0.15, 0.1);
+const vec3 eveningColor = vec3(0.3, 0.3, 0.01);
+const vec3 nightColor = vec3(0.0, 0.05, 0.3);
 const vec3 sunlightColor = vec3(1.0);
-const vec3 moonlightColor = vec3(0.4, 0.5, 0.6);
+const vec3 moonlightColor = vec3(0.1, 0.4, 0.7);
 const vec3 ambientColor = vec3(0.1);
 const float shadowDistanceRenderMul = 1.0;
 
@@ -35,7 +37,7 @@ in vec2 texcoord;
 #define SHADOW_RANGE 4
 #define SUNLIGHT_INTENSITY 2.5
 #define SKYLIGHT_INTENSITY 2.5
-#define SKYLIGHT_INTENSITY_NIGHT 0.2
+#define SKYLIGHT_INTENSITY_NIGHT 1
 #define BLOCKLIGHT_INTENSITY 1
 #define AMBIENT_INTENSITY 0.1
 #define MOONLIGHT_INTENSITY 0.2
@@ -62,6 +64,8 @@ vec4 getNoise(vec2 coord) {
 }
 
 vec3 getSoftShadow(vec4 shadowClipPos) {
+  vec3 encodedNormal = texture(colortex2, texcoord).rgb;
+  vec4 normal = shadowProjection * vec4(mat3(shadowModelView) * encodedNormal, 1.0);
   vec3 shadowAccum = vec3(0.0);
   const int samples = SHADOW_RANGE * SHADOW_RANGE * 4;
   float noise = getNoise(texcoord).r;
@@ -78,10 +82,12 @@ vec3 getSoftShadow(vec4 shadowClipPos) {
       offset = rotation * offset;
       offset /= shadowMapResolution;
       vec4 offsetShadowClipPos = shadowClipPos + vec4(offset, 0.0, 0.0);
+      float bias = computeBias(offsetShadowClipPos.xyz);
       offsetShadowClipPos.z -= 0.001;
       offsetShadowClipPos.xyz = distortShadowClipPos(offsetShadowClipPos.xyz);
       vec3 shadowNDCPos = offsetShadowClipPos.xyz / offsetShadowClipPos.w;
       vec3 shadowScreenPos = shadowNDCPos * 0.5 + 0.5;
+      shadowScreenPos.xyz += normal.xyz / normal.w * bias;
       shadowAccum += getShadow(shadowScreenPos);
     }
   }
@@ -134,12 +140,46 @@ void main() {
   vec3 worldlight = worldlightColor * clamp(dot(worldLightVector, normal), 0.0, 1.0) * shadow;
   float skylightIntensity = SKYLIGHT_INTENSITY;
   float worldlightIntensity = SUNLIGHT_INTENSITY;
-  vec3 skylightColor = dayColor;
-  if((worldTime >= 12785) && (worldTime < 23215)) {
+  vec3 skylightColor = morningColor;
+  
+  if(worldTime >= 2000 && worldTime < 4000) {
+    float time = worldTime - 2000;
+    skylightColor = mix(morningColor, noonColor, time / 2000);
+  }
+  if(worldTime >= 4000 && worldTime < 10000) {
+    skylightColor = noonColor;
+  }
+  if(worldTime >= 10000 && worldTime < 12000) {
+    float time = worldTime - 10000;
+    skylightColor = mix(noonColor, eveningColor, time / 2000);
+  }
+  if(worldTime >= 12000 && worldTime <= 13560) {
+    float time = worldTime - 12000;
+    skylightColor = mix(eveningColor, nightColor, time / 1560);
+    skylightIntensity = mix(SKYLIGHT_INTENSITY, SKYLIGHT_INTENSITY_NIGHT, time / 1560);
+    if(time <= 780) {
+      worldlightIntensity = SUNLIGHT_INTENSITY * (780 - time) / 780;
+    }
+    else {
+      worldlightIntensity = MOONLIGHT_INTENSITY * (time - 780) / 780;
+    }
+  }
+  if((worldTime > 13560) && (worldTime < 22436)) {
     worldlightColor = moonlightColor;
     worldlightIntensity = MOONLIGHT_INTENSITY;
     skylightColor = nightColor;
     skylightIntensity = SKYLIGHT_INTENSITY_NIGHT;
+  }
+  if(worldTime >= 22436 && worldTime <= 23996) {
+    float time = worldTime - 22436;
+    skylightColor = mix(nightColor, morningColor, time / 1560);
+    skylightIntensity = mix(SKYLIGHT_INTENSITY_NIGHT, SKYLIGHT_INTENSITY, time / 1560);
+    if(time <= 780) {
+      worldlightIntensity = MOONLIGHT_INTENSITY * (780 - time) / 780;
+    }
+    else {
+      worldlightIntensity = SUNLIGHT_INTENSITY * (time - 780) / 780;
+    }
   }
   vec3 blocklight = lightmap.r * blocklightColor;
   vec3 skylight = lightmap.g * skylightColor;
