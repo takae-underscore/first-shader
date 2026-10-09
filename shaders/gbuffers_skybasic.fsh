@@ -35,7 +35,7 @@ void main() {
   }
   else {
     if(skyPos > 0.0) {
-      fogFactor = 0.07 / (skyPos * skyPos + 0.07);
+      fogFactor = 0.01 / (skyPos * skyPos + 0.01);
     }
     color.rgb = mix(skycolor, fogColor, fogFactor);
   }

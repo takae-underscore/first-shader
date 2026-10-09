@@ -18,6 +18,7 @@ uniform mat4 shadowProjection;
 uniform float viewWidth;
 uniform float viewHeight;
 uniform int worldTime;
+uniform float rainStrength;
 
 const vec3 blocklightColor = vec3(1.0, 0.4, 0.3);
 const vec3 morningColor = vec3(0.05, 0.15, 0.3);
@@ -180,6 +181,10 @@ void main() {
     else {
       worldlightIntensity = SUNLIGHT_INTENSITY * (time - 780) / 780;
     }
+  }
+  if(rainStrength > 0.0){
+    skylightColor = mix(skylightColor, nightColor, rainStrength);
+    worldlightIntensity = worldlightIntensity - worldlightIntensity * (rainStrength - 0.1);
   }
   vec3 blocklight = lightmap.r * blocklightColor;
   vec3 skylight = lightmap.g * skylightColor;
