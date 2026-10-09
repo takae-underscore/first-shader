@@ -22,7 +22,7 @@ uniform int worldTime;
 const vec3 blocklightColor = vec3(1.0, 0.4, 0.3);
 const vec3 morningColor = vec3(0.05, 0.15, 0.3);
 const vec3 noonColor = vec3(0.14, 0.15, 0.1);
-const vec3 eveningColor = vec3(0.3, 0.3, 0.01);
+const vec3 eveningColor = vec3(0.3, 0.15, 0.01);
 const vec3 nightColor = vec3(0.0, 0.05, 0.3);
 const vec3 sunlightColor = vec3(1.0);
 const vec3 moonlightColor = vec3(0.1, 0.4, 0.7);
