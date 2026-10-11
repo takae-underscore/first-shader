@@ -19,11 +19,12 @@ uniform float viewWidth;
 uniform float viewHeight;
 uniform int worldTime;
 uniform float rainStrength;
+uniform float far;
 
 const vec3 blocklightColor = vec3(1.0, 0.4, 0.3);
 const vec3 morningColor = vec3(0.05, 0.15, 0.3);
-const vec3 noonColor = vec3(0.14, 0.15, 0.1);
-const vec3 eveningColor = vec3(0.3, 0.15, 0.01);
+const vec3 noonColor = vec3(0.14, 0.15, 0.12);
+const vec3 eveningColor = vec3(0.3, 0.08, 0.01);
 const vec3 nightColor = vec3(0.0, 0.05, 0.3);
 const vec3 sunlightColor = vec3(1.0);
 const vec3 moonlightColor = vec3(0.1, 0.4, 0.7);
@@ -34,14 +35,7 @@ in vec2 texcoord;
 
 #include "/lib/distort.glsl"
 #include "/lib/projectAndDivide.glsl"
-#define SHADOW_RADIUS 1
-#define SHADOW_RANGE 4
-#define SUNLIGHT_INTENSITY 2.5
-#define SKYLIGHT_INTENSITY 2.5
-#define SKYLIGHT_INTENSITY_NIGHT 1
-#define BLOCKLIGHT_INTENSITY 1
-#define AMBIENT_INTENSITY 0.1
-#define MOONLIGHT_INTENSITY 0.2
+#include "/lib/settings.glsl"
 
 vec3 getShadow(vec3 shadowScreenPos) {
   float transparentShadow = step(shadowScreenPos.z, texture(shadowtex0, shadowScreenPos.xy).r);
@@ -64,35 +58,48 @@ vec4 getNoise(vec2 coord) {
   return texelFetch(noisetex, noiseCoord, 0);
 }
 
-vec3 getSoftShadow(vec4 shadowClipPos) {
-  vec3 encodedNormal = texture(colortex2, texcoord).rgb;
-  vec4 normal = shadowProjection * vec4(mat3(shadowModelView) * encodedNormal, 1.0);
+vec3 getSoftShadow(vec4 shadowClipPos, vec2 lightmap, vec3 normal, float lightDot) {
   vec3 shadowAccum = vec3(0.0);
   const int samples = SHADOW_RANGE * SHADOW_RANGE * 4;
-  float noise = getNoise(texcoord).r;
+  if(lightmap.g > 0.0 && lightDot > 0.0) {
+    float noise = getNoise(texcoord).r;
 
-  float theta = noise * radians(360.0);
-  float cosTheta = cos(theta);
-  float sinTheta = sin(theta);
+    vec3 shadowViewNormal = mat3(shadowModelView) * normal;
+    vec4 shadowClipNormal = shadowProjection * vec4(shadowViewNormal, 1.0);
+    vec3 shadowNormal = shadowClipNormal.xyz / shadowClipNormal.w;
+    vec3 shadowSpaceScale = vec3(shadowProjection[0][0], shadowProjection[1][1], shadowProjection[2][2]);
 
-  mat2 rotation = mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
+    vec2 slidePlane = shadowViewNormal.xy / shadowViewNormal.z / shadowSpaceScale.xy * shadowSpaceScale.z;
 
-  for(int x = -SHADOW_RANGE; x < SHADOW_RANGE; x++) {
-    for(int y = -SHADOW_RANGE; y < SHADOW_RANGE; y++) {
-      vec2 offset = vec2(x, y) * SHADOW_RADIUS / float(SHADOW_RANGE);
-      offset = rotation * offset;
-      offset /= shadowMapResolution;
-      vec4 offsetShadowClipPos = shadowClipPos + vec4(offset, 0.0, 0.0);
-      float bias = computeBias(offsetShadowClipPos.xyz);
-      offsetShadowClipPos.z -= 0.001;
-      offsetShadowClipPos.xyz = distortShadowClipPos(offsetShadowClipPos.xyz);
-      vec3 shadowNDCPos = offsetShadowClipPos.xyz / offsetShadowClipPos.w;
-      vec3 shadowScreenPos = shadowNDCPos * 0.5 + 0.5;
-      shadowScreenPos.xyz += normal.xyz / normal.w * bias;
-      shadowAccum += getShadow(shadowScreenPos);
+    float theta = noise * radians(360.0);
+    float cosTheta = cos(theta);
+    float sinTheta = sin(theta);
+
+    mat2 rotation = mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
+
+    for(int x = -SHADOW_RANGE; x < SHADOW_RANGE; x++) {
+      for(int y = -SHADOW_RANGE; y < SHADOW_RANGE; y++) {
+        vec2 offset = vec2(x, y) * SHADOW_RADIUS / float(SHADOW_RANGE);
+        offset = rotation * offset;
+        offset /= shadowMapResolution;
+        vec4 offsetShadowClipPos = shadowClipPos + vec4(offset, 0.0, 0.0);
+        float bias = computeBias(offsetShadowClipPos.xyz);
+        offsetShadowClipPos.xyz = distortShadowPos(offsetShadowClipPos.xyz);
+        vec3 shadowNDCPos = offsetShadowClipPos.xyz / offsetShadowClipPos.w;
+        vec3 shadowScreenPos = shadowNDCPos * 0.5 + 0.5;
+        float zOffset = clamp(dot(offset, slidePlane), 0.0, 1.0);
+        shadowScreenPos.z -= zOffset;
+        shadowScreenPos.xyz += shadowNormal * bias;
+        shadowAccum += getShadow(shadowScreenPos);
+      }
     }
+
+  }
+  else {
+    return shadowAccum;
   }
 
+  //return shadowAccum;
   return shadowAccum / float(samples);
 }
 
@@ -128,13 +135,15 @@ void main() {
   if(depth1 != depth2) {
     depth = convertHandDepth(depth);
   }
+
   vec3 NDCPos = vec3(texcoord.xy, depth) * 2.0 - 1.0;
   vec3 viewPos = projectAndDivide(gbufferProjectionInverse, NDCPos);
   vec3 feetPlayerPos = (gbufferModelViewInverse * vec4(viewPos, 1.0)).xyz;
   vec3 shadowViewPos = (shadowModelView * vec4(feetPlayerPos, 1.0)).xyz;
   vec4 shadowClipPos = shadowProjection * vec4(shadowViewPos, 1.0);
+  float lightDot = dot(normalize(worldLightVector), normal);
 
-  vec3 shadow = getSoftShadow(shadowClipPos);
+  vec3 shadow = getSoftShadow(shadowClipPos, lightmap, normal, lightDot);
   
   // calculate lighting
   vec3 worldlightColor = sunlightColor;
@@ -142,7 +151,6 @@ void main() {
   float skylightIntensity = SKYLIGHT_INTENSITY;
   float worldlightIntensity = SUNLIGHT_INTENSITY;
   vec3 skylightColor = morningColor;
-  
   if(worldTime >= 2000 && worldTime < 4000) {
     float time = worldTime - 2000;
     skylightColor = mix(morningColor, noonColor, time / 2000);
@@ -190,5 +198,19 @@ void main() {
   vec3 skylight = lightmap.g * skylightColor;
   vec3 ambient = ambientColor;
 
+  #if DEBUG_MODE == 0
   color.rgb *= BLOCKLIGHT_INTENSITY * blocklight + skylightIntensity * skylight + AMBIENT_INTENSITY * ambient + worldlightIntensity * worldlight;
+  #endif
+  #if DEBUG_MODE == 1
+  color.rgb = vec3(lightmap, 0.0);
+  #endif
+  #if DEBUG_MODE == 2
+  color.rgb = normal;
+  #endif
+  #if DEBUG_MODE == 3
+  color.rgb = shadow;
+  #endif
+  #if DEBUG_MODE == 4
+  color.rgb = texture(shadowtex0, texcoord).rgb;
+  #endif
 }

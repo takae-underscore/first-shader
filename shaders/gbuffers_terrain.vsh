@@ -4,6 +4,7 @@ out vec2 lmcoord;
 out vec2 texcoord;
 out vec4 glcolor;
 out vec3 normal;
+
 uniform mat4 gbufferModelViewInverse;
 
 void main() {
@@ -13,5 +14,5 @@ void main() {
 	glcolor = gl_Color;
   normal = gl_NormalMatrix * gl_Normal;
   normal = mat3(gbufferModelViewInverse) * normal;
-  	gl_Position = ftransform();
+  gl_Position = ftransform();
 }

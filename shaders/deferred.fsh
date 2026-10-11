@@ -19,16 +19,11 @@ uniform int moonPhase;
 in vec2 texcoord;
 in vec4 glcolor;
 
-#define MOON_RADIANCE 10
-#define MOON_BRIGHTNESS 20
-
 /* RENDERTARGETS: 0 */
 layout(location = 0) out vec4 color;
 
-vec3 projectAndDivide(mat4 projectionMatrix, vec3 position) {
-  vec4 homPos = projectionMatrix * vec4(position, 1.0);
-  return homPos.xyz / homPos.w;
-}
+#include "/lib/projectAndDivide.glsl"
+#include "/lib/settings.glsl"
 
 void main() {
   color = texture(colortex0, texcoord);
@@ -41,9 +36,10 @@ void main() {
     return;
   }
   vec3 moonDirection = 0.01 * moonPosition;
-  vec3 moonColor = vec3(0.3, 0.5, 0.6) * abs((3.5 - moonPhase)) / 3.5;
+  vec3 moonColor = MOON_BRIGHTNESS * vec3(0.3, 0.5, 0.6) * abs((3.5 - moonPhase)) / 3.5;
   
-  float moonFactor = pow(dot(moonDirection, normalize(viewPos)) * 0.5 + 0.5, 10);
+  float dotMoon = dot(moonDirection, normalize(viewPos));
+  float moonFactor = pow(clamp(dotMoon * 0.5 + 0.5, 0.01, 1.0), 10);
   if(rainStrength > 0.0) {
     moonColor.rgb = mix(skyColor, fogColor, 0.5) + (1.0 - rainStrength * 0.8) * moonColor.rgb;
   }

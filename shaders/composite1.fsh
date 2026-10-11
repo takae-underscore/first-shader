@@ -12,7 +12,7 @@ in vec2 texcoord;
 
 #include "/lib/distort.glsl"
 #include "/lib/projectAndDivide.glsl"
-#define FOG_DENSITY 5.0
+#include "/lib/settings.glsl"
 
 /* RENDERTARGETS: 0 */
 layout(location = 0) out vec4 color;
@@ -29,7 +29,7 @@ void main() {
   vec3 viewPos = projectAndDivide(gbufferProjectionInverse, NDCPos);
 
   float dist = length(viewPos) / far;
-  float fogFactor = pow(dist, FOG_DENSITY);
+  float fogFactor = pow(dist, 11 - FOG_DENSITY);
   
   color.rgb = mix(color.rgb, pow(fogColor, vec3(2.2)), clamp(fogFactor, 0.0, 1.0));
 }
