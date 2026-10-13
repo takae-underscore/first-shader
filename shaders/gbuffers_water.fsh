@@ -4,6 +4,7 @@ uniform sampler2D gtexture;
 uniform sampler2D normals;
 uniform int worldTime;
 uniform vec3 shadowLightPosition;
+uniform sampler2D water;
 
 uniform float alphaTestRef = 0.1;
 
@@ -44,15 +45,15 @@ void main() {
   normalTexture = normalize(tbnMatrix * normalize((normalTexture - 0.5) * 2.0));
 
   #if WAVES == 1
-  float wave_motion = float(worldTime) * 0.01;
-  float noiseOffset = 0.05;
-  float h1 = fractalNoise(worldPos.xz * 0.2 + wave_motion);
-  float h2 = fractalNoise(worldPos.xz * 0.2 + wave_motion + vec2(noiseOffset, 0.0));
-  float h3 = fractalNoise(worldPos.xz * 0.2 + wave_motion + vec2(0.0, noiseOffset));
-  float h4 = fractalNoise(worldPos.xz * 0.2 - wave_motion);
-  float h5 = fractalNoise(worldPos.xz * 0.2 - wave_motion + vec2(noiseOffset, 0.0));
-  float h6 = fractalNoise(worldPos.xz * 0.2 - wave_motion + vec2(0.0, noiseOffset));
-  normalTexture = vec3(h2 - h1, h3 - h1, 0.1 + (1.0 - 0.3)) + vec3(h5 - h4, h6 - h4, 0.1 + (1.0 - 0.3));
+  float wave_motion = float(worldTime) * 0.005;
+  float noiseOffset = 0.5;
+  vec3 layer1 = 0.5 * texture(water, fract(worldPos.xz * 0.2 + wave_motion)).rgb;
+  vec3 layer2 = 0.5 * texture(water, fract(worldPos.xz * 0.2 - wave_motion + vec2(noiseOffset, 0))).rgb;
+  
+  
+  normalTexture = layer1 + layer2;
+  normalTexture = normalize((normalTexture - 0.5) * 2.0);
+  normalTexture.xy *= 0.2;
   normalTexture = normalize(tbnMatrix * normalTexture);
   #endif
 
