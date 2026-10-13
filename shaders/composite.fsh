@@ -3,6 +3,8 @@
 uniform sampler2D colortex0;
 uniform sampler2D colortex1;
 uniform sampler2D colortex2;
+uniform sampler2D colortex3;
+uniform sampler2D colortex4;
 uniform sampler2D depthtex0;
 uniform sampler2D depthtex1;
 uniform sampler2D depthtex2;
@@ -36,6 +38,7 @@ in vec2 texcoord;
 #include "/lib/distort.glsl"
 #include "/lib/projectAndDivide.glsl"
 #include "/lib/settings.glsl"
+#include "/lib/noise.glsl"
 
 vec3 getShadow(vec3 shadowScreenPos) {
   float transparentShadow = step(shadowScreenPos.z, texture(shadowtex0, shadowScreenPos.xy).r);
@@ -127,7 +130,10 @@ void main() {
   vec3 encodedNormal = texture(colortex2, texcoord).rgb;
   vec3 normal = normalize((encodedNormal - 0.5) * 2.0);
   vec3 lightVector = normalize(shadowLightPosition);
-  vec3 worldLightVector = mat3(gbufferModelViewInverse) * lightVector;
+  vec3 worldLightVector = normalize(mat3(gbufferModelViewInverse) * lightVector);
+  vec3 encodedNormalTexture = texture(colortex2, texcoord).rgb;
+  vec3 normalTexture = normalize((encodedNormalTexture - 0.5) * 2.0);
+  
 
   // shadows
   float depth1 = texture(depthtex1, texcoord).r;
@@ -141,13 +147,18 @@ void main() {
   vec3 feetPlayerPos = (gbufferModelViewInverse * vec4(viewPos, 1.0)).xyz;
   vec3 shadowViewPos = (shadowModelView * vec4(feetPlayerPos, 1.0)).xyz;
   vec4 shadowClipPos = shadowProjection * vec4(shadowViewPos, 1.0);
-  float lightDot = dot(normalize(worldLightVector), normal);
+  float lightDot = clamp(dot(worldLightVector, normalTexture), 0.0, 1.0); 
+
+  //specular data
+  float smoothness = texture(colortex3, texcoord).r;
+  float reflectiveStrength = texture(colortex3, texcoord).g;
+  float fresnel = texture(colortex3, texcoord).b;
 
   vec3 shadow = getSoftShadow(shadowClipPos, lightmap, normal, lightDot);
   
   // calculate lighting
   vec3 worldlightColor = sunlightColor;
-  vec3 worldlight = worldlightColor * clamp(dot(worldLightVector, normal), 0.0, 1.0) * shadow;
+  vec3 worldlight = worldlightColor * lightDot * shadow * (1.0 - reflectiveStrength);
   float skylightIntensity = SKYLIGHT_INTENSITY;
   float worldlightIntensity = SUNLIGHT_INTENSITY;
   vec3 skylightColor = morningColor;
@@ -208,9 +219,13 @@ void main() {
   color.rgb = normal;
   #endif
   #if DEBUG_MODE == 3
+  color.rgb = normalTexture;
+  #endif
+  #if DEBUG_MODE == 5
   color.rgb = shadow;
   #endif
-  #if DEBUG_MODE == 4
+  #if DEBUG_MODE == 6
   color.rgb = texture(shadowtex0, texcoord).rgb;
   #endif
+  
 }
