@@ -67,9 +67,10 @@ void main() {
   float fresnel = pow(1 - clamp(dot(normalTexture, rayDir), 0.0, 1.0), 6.0);
   float reflectiveStrength = f0 + (1.0 - f0) * fresnel * smoothness;
   specular = vec4(smoothness, reflectiveStrength, fresnel, 1.0);
+  /*
   vec3 reflection = reflect(-rayDir, normalTexture);
   float sunReflection = pow(clamp(dot(reflection, worldLightVector), 0, 1), 1 + 2 * smoothness);
   color.rgb += reflectiveStrength * sunReflection;
-
+  */
   
 }
