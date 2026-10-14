@@ -17,5 +17,5 @@ vec3 distortShadowPos(vec3 shadowPos) {
 float computeBias(vec3 shadowClipPos) {
   float numerator = length(shadowClipPos.xy) + 0.1;
   numerator *= numerator;
-  return float(SHADOW_BIAS) / shadowMapResolution * numerator / 0.1;
+  return float(8) / shadowMapResolution * numerator / 0.1;
 }

@@ -40,71 +40,7 @@ in vec2 texcoord;
 #include "/lib/settings.glsl"
 #include "/lib/noise.glsl"
 
-vec3 getShadow(vec3 shadowScreenPos) {
-  float transparentShadow = step(shadowScreenPos.z, texture(shadowtex0, shadowScreenPos.xy).r);
-  if (transparentShadow == 1.0) {
-    return vec3(1.0);
-  }
 
-  float opaqueShadow = step(shadowScreenPos.z, texture(shadowtex1, shadowScreenPos.xy).r);
-  if(opaqueShadow == 0.0) {
-    return vec3(0.0);
-  }
-
-  vec4 shadowColor = texture(shadowcolor0, shadowScreenPos.xy);
-  return shadowColor.rgb * (1.0 - shadowColor.a);
-}
-
-vec4 getNoise(vec2 coord) {
-  ivec2 screenCoord = ivec2(coord * vec2(viewWidth, viewHeight));
-  ivec2 noiseCoord = screenCoord % 64;
-  return texelFetch(noisetex, noiseCoord, 0);
-}
-
-vec3 getSoftShadow(vec4 shadowClipPos, vec2 lightmap, vec3 normal, float lightDot) {
-  vec3 shadowAccum = vec3(0.0);
-  const int samples = SHADOW_RANGE * SHADOW_RANGE * 4;
-  if(lightmap.g > 0.0 && lightDot > 0.0) {
-    float noise = getNoise(texcoord).r;
-
-    vec3 shadowViewNormal = mat3(shadowModelView) * normal;
-    vec4 shadowClipNormal = shadowProjection * vec4(shadowViewNormal, 1.0);
-    vec3 shadowNormal = shadowClipNormal.xyz / shadowClipNormal.w;
-    vec3 shadowSpaceScale = vec3(shadowProjection[0][0], shadowProjection[1][1], shadowProjection[2][2]);
-
-    vec2 slidePlane = shadowViewNormal.xy / shadowViewNormal.z / shadowSpaceScale.xy * shadowSpaceScale.z;
-
-    float theta = noise * radians(360.0);
-    float cosTheta = cos(theta);
-    float sinTheta = sin(theta);
-
-    mat2 rotation = mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
-
-    for(int x = -SHADOW_RANGE; x < SHADOW_RANGE; x++) {
-      for(int y = -SHADOW_RANGE; y < SHADOW_RANGE; y++) {
-        vec2 offset = vec2(x, y) * SHADOW_RADIUS / float(SHADOW_RANGE);
-        offset = rotation * offset;
-        offset /= shadowMapResolution;
-        vec4 offsetShadowClipPos = shadowClipPos + vec4(offset, 0.0, 0.0);
-        float bias = computeBias(offsetShadowClipPos.xyz);
-        offsetShadowClipPos.xyz = distortShadowPos(offsetShadowClipPos.xyz);
-        vec3 shadowNDCPos = offsetShadowClipPos.xyz / offsetShadowClipPos.w;
-        vec3 shadowScreenPos = shadowNDCPos * 0.5 + 0.5;
-        float zOffset = clamp(dot(offset, slidePlane), 0.0, 1.0);
-        shadowScreenPos.z -= zOffset;
-        shadowScreenPos.xyz += shadowNormal * bias;
-        shadowAccum += getShadow(shadowScreenPos);
-      }
-    }
-
-  }
-  else {
-    return shadowAccum;
-  }
-
-  //return shadowAccum;
-  return shadowAccum / float(samples);
-}
 
 float convertHandDepth(float depth) {
     float ndcDepth = depth * 2.0 - 1.0;
@@ -117,9 +53,10 @@ layout(location = 0) out vec4 color;
 
 void main() {
   color = texture(colortex0, texcoord);
-  color.rgb = pow(color.rgb, vec3(2.2));
+  //color.rgb = pow(color.rgb, vec3(2.2));
 
   // depth data (don't light the sky)
+  /*
   float depth = texture(depthtex0, texcoord).r;
   if (depth == 1.0) {
     return;
@@ -212,18 +149,15 @@ void main() {
   #if DEBUG_MODE == 0
   color.rgb *= BLOCKLIGHT_INTENSITY * blocklight + skylightIntensity * skylight + AMBIENT_INTENSITY * ambient + worldlightIntensity * worldlight;
   #endif
+  */
   #if DEBUG_MODE == 1
   color.rgb = vec3(lightmap, 0.0);
   #endif
-  #if DEBUG_MODE == 2
-  color.rgb = normal;
-  #endif
+  
   #if DEBUG_MODE == 3
-  color.rgb = normalTexture;
+  color.rgb = texture(colortex0, texcoord).rgb;
   #endif
-  #if DEBUG_MODE == 5
-  color.rgb = shadow;
-  #endif
+  
   #if DEBUG_MODE == 6
   color.rgb = texture(shadowtex0, texcoord).rgb;
   #endif

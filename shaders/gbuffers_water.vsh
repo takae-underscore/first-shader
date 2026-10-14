@@ -28,10 +28,12 @@ void main() {
   vec4 clipPos = (gl_ProjectionMatrix) * vec4(viewPos, 1.0);
   eyePlayerPos = mat3(gbufferModelViewInverse) * viewPos;
   worldPos = eyePlayerPos + eyePosition;
+
   normal = gl_NormalMatrix * normalize(gl_Normal);
   vec4 tangent = vec4(gl_NormalMatrix * normalize(at_tangent.xyz), at_tangent.w);
   vec3 bitangent = normalize(cross(tangent.xyz, normal) * tangent.w);
   tbnMatrix = mat3(tangent.xyz, bitangent, normal);
+  
   worldLightVector = normalize(shadowLightPosition);
 
   
