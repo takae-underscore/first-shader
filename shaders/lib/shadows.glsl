@@ -8,6 +8,8 @@ uniform mat4 shadowProjection;
 uniform float viewWidth;
 uniform float viewHeight;
 
+const float shadowDistanceRenderMul = 0.5;
+
 #include "/lib/settings.glsl"
 #include "/lib/distort.glsl"
 #include "/lib/projectAndDivide.glsl"
@@ -95,6 +97,7 @@ vec3 getSoftShadow(vec3 viewPos, vec2 lightmap, vec3 normal, vec3 lightPos)
 
   }
   else {
+    shadowAccum = lightmap.g > 0.01 ? vec3(1.0) * clamp((lightDot + 1.0), 0.0, 1.0) : shadowAccum;
     return shadowAccum;
   }
 

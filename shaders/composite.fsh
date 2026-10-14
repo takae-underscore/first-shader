@@ -31,7 +31,7 @@ const vec3 nightColor = vec3(0.0, 0.05, 0.3);
 const vec3 sunlightColor = vec3(1.0);
 const vec3 moonlightColor = vec3(0.1, 0.4, 0.7);
 const vec3 ambientColor = vec3(0.1);
-const float shadowDistanceRenderMul = 1.0;
+
 
 in vec2 texcoord;
 
