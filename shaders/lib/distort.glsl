@@ -5,17 +5,27 @@ const bool shadowcolor0Nearest = true;
 
 #include "/lib/settings.glsl"
 
-vec3 distortShadowPos(vec3 shadowPos) {
-  float distortionFactor = length(shadowPos.xy);
-  distortionFactor += 0.1;
+#ifdef SHADOW_DISTORT_ENABLED
+  vec3 distortShadowPos(vec3 shadowPos) {
+    float distortionFactor = length(shadowPos.xy) + SHADOW_DISTORT_FACTOR;
 
-  shadowPos.xy /= distortionFactor;
-  shadowPos.z *= 0.5;
-  return shadowPos;
-}
+    shadowPos.xy /= distortionFactor;
+    shadowPos.z *= 0.5;
+    return shadowPos;
+  }
 
-float computeBias(vec3 shadowClipPos) {
-  float numerator = length(shadowClipPos.xy) + 0.1;
-  numerator *= numerator;
-  return float(8) / shadowMapResolution * numerator / 0.1;
-}
+  float computeBias(vec3 shadowClipPos) {
+    float numerator = length(shadowClipPos.xy) + SHADOW_DISTORT_FACTOR;
+    numerator *= numerator;
+    return SHADOW_BIAS / shadowMapResolution * numerator / SHADOW_DISTORT_FACTOR;
+  }
+#else
+  vec3 distortShadowPos(vec3 shadowPos) {
+    return vec3(shadowPos.xy, shadowPos.z * 0.5);
+  }
+
+  float computeBias(vec3 shadowClipPos)
+  {
+    return SHADOW_BIAS / shadowMapResolution;
+  }
+#endif

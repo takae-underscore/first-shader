@@ -70,9 +70,9 @@ void main() {
 
     vec3 startScreenPos = startNdcPos * 0.5 + 0.5;
 
-    float maxTraceDistance = reflectionDir.x >= 0 ? (1 - startScreenPos.x) / reflectionDir.x : -startScreenPos.x / reflectionDir.x;
-    maxTraceDistance = min(maxTraceDistance, reflectionDir.y < 0 ? (-startScreenPos.y / reflectionDir.y) : ((1 - startScreenPos.y) / reflectionDir.y));
-    //maxTraceDistance = min(maxTraceDistance, reflectionDir.z < -0 ? (-startScreenPos.z / reflectionDir.z) : ((1 - startScreenPos.z) / reflectionDir.z));
+    float maxTraceDistance = reflectionDir.x >= 0.0 ? (1.0 - startScreenPos.x) / reflectionDir.x : -startScreenPos.x / reflectionDir.x;
+    maxTraceDistance = min(maxTraceDistance, reflectionDir.y < 0.0 ? (-startScreenPos.y / reflectionDir.y) : ((1.0 - startScreenPos.y) / reflectionDir.y));
+    //maxTraceDistance = min(maxTraceDistance, reflectionDir.z < 0.0 ? (-startScreenPos.z / reflectionDir.z) : ((1.0 - startScreenPos.z) / reflectionDir.z));
 
     vec3 endScreenPos = startScreenPos + reflectionDir * maxTraceDistance;
     vec3 delta = endScreenPos - startScreenPos;
@@ -87,15 +87,15 @@ void main() {
     int hitIndex = -1;
 
     for(int i = 0; i < maxDist && i < maxIteration; i += 4) {
-      float depth0 = 0;
-      float depth1 = 0;
-      float depth2 = 0;
-      float depth3 = 0;
+      float depth0 = 0.0;
+      float depth1 = 0.0;
+      float depth2 = 0.0;
+      float depth3 = 0.0;
 
-      vec3 rayPos0 = rayPos + rayDir * 0;
-      vec3 rayPos1 = rayPos + rayDir * 1;
-      vec3 rayPos2 = rayPos + rayDir * 2;
-      vec3 rayPos3 = rayPos + rayDir * 3;
+      vec3 rayPos0 = rayPos + rayDir * 0.0;
+      vec3 rayPos1 = rayPos + rayDir * 1.0;
+      vec3 rayPos2 = rayPos + rayDir * 2.0;
+      vec3 rayPos3 = rayPos + rayDir * 3.0;
 
       depth3 = texture(depthtex0, rayPos3.xy).r;
       depth2 = texture(depthtex0, rayPos2.xy).r;
@@ -103,16 +103,16 @@ void main() {
       depth0 = texture(depthtex0, rayPos0.xy).r;
       
       float thickness = rayPos3.z - depth3;
-      hitIndex = (thickness >= 0 && thickness < maxThickness) ? (i + 3) : hitIndex;
+      hitIndex = (thickness >= 0.0 && thickness < maxThickness) ? (i + 3) : hitIndex;
 
       thickness = rayPos2.z - depth2;
-      hitIndex = (thickness >= 0 && thickness < maxThickness) ? (i + 2) : hitIndex;
+      hitIndex = (thickness >= 0.0 && thickness < maxThickness) ? (i + 2) : hitIndex;
 
       thickness = rayPos1.z - depth1;
-      hitIndex = (thickness >= 0 && thickness < maxThickness) ? (i + 1) : hitIndex;
+      hitIndex = (thickness >= 0.0 && thickness < maxThickness) ? (i + 1) : hitIndex;
 
       thickness = rayPos0.z - depth0;
-      hitIndex = (thickness >= 0 && thickness < maxThickness) ? (i + 0) : hitIndex;
+      hitIndex = (thickness >= 0.0 && thickness < maxThickness) ? (i + 0) : hitIndex;
 
       if(hitIndex != -1) break;
 

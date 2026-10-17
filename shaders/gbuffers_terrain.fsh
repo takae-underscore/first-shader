@@ -36,10 +36,10 @@ void main() {
   //normal data
   vec4 normalTexture = texture(normals, texcoord);
   #if PBR_TEXTURES == 1
-  const float ambientOcclusionLevel = 0.0;
   float ao = normalTexture.b;
   #else
-  float ao = 1.0;
+
+  float ao = 0.95;
   #endif
   vec3 normal = calcNormal(normalTexture, tbnMatrix);
 
@@ -51,7 +51,7 @@ void main() {
   float isMetal = specularTexture.g * 255 >= 230 ? 1.0 : 0.0;
   float porosity = specularTexture.b;
   #else
-  float perceptualSmoothness = 0.01;
+  float perceptualSmoothness = 0.2;
   float f0 = 0.04;
   float isMetal = 0.0;
   #endif
@@ -59,9 +59,15 @@ void main() {
   float roughness = pow(1.0 - perceptualSmoothness, 2.0);
 
   color.rgb = getLighting(viewPos, normal, normalFace, lightPos, blocklightLevel, skylightLevel, albedo, isMetal, roughness, ao, f0);
+
+  #if DEBUG_MODE == 1
+  color.rgb = vec3(lmcoord, 0.0);
+  #endif
   #if DEBUG_MODE == 2
   color.rgb = normal;
   #endif
-  //olor.rgb = shadow;
+  #if DEBUG_MODE == 3
+  color.rgb = vec3(perceptualSmoothness, 0.0, 0.0);
+  #endif
   encodedNormal = vec4(normal * 0.5 + 0.5, 1.0);
 }

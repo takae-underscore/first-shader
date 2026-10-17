@@ -1,6 +1,7 @@
 uniform float sunAngle;
 
 const float pi = 3.14159265359;
+const float ambientOcclusionLevel = 0.0;
 
 #include "/lib/lightColors.glsl"
 #include "/lib/shadows.glsl"
@@ -11,7 +12,7 @@ vec3 calcNormal(vec4 normalTexture, mat3 tbnMatrix)
 
   normal.xy = (normalTexture.xy - 0.5) * 2.0;
   normal.z = sqrt(max(1.0 - dot(normal.xy, normal.xy), 0.0));
-  normal = tbnMatrix * normal;
+  normal = normalize(tbnMatrix * normal);
 
   return normal;
 }
@@ -62,18 +63,18 @@ vec3 getLighting(vec3 viewPos, vec3 normal, vec3 normalFace, vec3 lightPos, floa
   vec3 lightOut = vec3(0.0);
   
   vec3 lightColor = getDirectLightColors(sunAngle);
-  
 
+  float shadowFactor = getSoftShadow(viewPos, skylightLevel, normalFace, lightPos);
+  
   if(skylightLevel > 0.01)
   {
 
     vec3 N = normal;
     vec3 V = -normalize(viewPos);
     
-    vec3 L = normalize(lightPos - viewPos);
+    vec3 L = normalize(lightPos);
     vec3 H = normalize(V + L);
 
-    float dist = length(lightPos - viewPos);;
     vec3 radiance = lightColor;
 
     //fresnel
@@ -97,13 +98,11 @@ vec3 getLighting(vec3 viewPos, vec3 normal, vec3 normalFace, vec3 lightPos, floa
     float NdotL = max(dot(N,L), 0.0);
     lightOut += (kD * albedo / pi + specular) * radiance * NdotL;
   }
-
-  vec3 shadow = getSoftShadow(viewPos, lmcoord, normalFace, lightPos);
   
   vec3 ambient = getSkylight(sunAngle, skylightLevel) + getBlocklight(blocklightLevel) + ambientColor;
   ambient = ambient * albedo * ao;
 
-  vec3 color = ambient + lightOut * shadow;
+  vec3 color = ambient + lightOut * shadowFactor;
 
   #if DEBUG_MODE == 5
   color.rgb = shadow;

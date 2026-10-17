@@ -13,7 +13,6 @@ const float shadowDistanceRenderMul = 0.5;
 #include "/lib/settings.glsl"
 #include "/lib/distort.glsl"
 #include "/lib/projectAndDivide.glsl"
-#include "/lib/noise.glsl"
 
 float convertHandDepth(float depth) {
     float ndcDepth = depth * 2.0 - 1.0;
@@ -21,19 +20,19 @@ float convertHandDepth(float depth) {
     return ndcDepth * 0.5 + 0.5;
 }
 
-vec3 getShadow(vec3 shadowScreenPos) {
+float getShadow(vec3 shadowScreenPos) {
   float transparentShadow = step(shadowScreenPos.z, texture(shadowtex0, shadowScreenPos.xy).r);
   if (transparentShadow == 1.0) {
-    return vec3(1.0);
+    return 1.0;
   }
 
   float opaqueShadow = step(shadowScreenPos.z, texture(shadowtex1, shadowScreenPos.xy).r);
   if(opaqueShadow == 0.0) {
-    return vec3(0.0);
+    return 0.0;
   }
 
-  vec4 shadowColor = texture(shadowcolor0, shadowScreenPos.xy);
-  return shadowColor.rgb * (1.0 - shadowColor.a);
+  //vec4 shadowColor = texture(shadowcolor0, shadowScreenPos.xy);
+  //return shadowColor.rgb * (1.0 - shadowColor.a);
 }
 
 float ign(vec2 coords)
@@ -55,29 +54,31 @@ vec2 vogelDiskOffset(int sampleIndex, int samplesCount, float phi)
   return vec2(r * cosine, r * sine);
 }
 
-vec3 getSoftShadow(vec3 viewPos, vec2 lightmap, vec3 normal, vec3 lightPos)
+float getSoftShadow(vec3 viewPos, float skylight, vec3 normal, vec3 lightPos)
 {
-  //change from view space to shadow clip space
-
-  vec3 feetPlayerPos = (gbufferModelViewInverse * vec4(viewPos, 1.0)).xyz;
-  vec3 shadowViewPos = (shadowModelView * vec4(feetPlayerPos, 1.0)).xyz;
-  vec4 shadowClipPos = shadowProjection * vec4(shadowViewPos, 1.0);
+  
 
   vec3 lightDir = normalize(mat3(gbufferModelViewInverse) * normalize(lightPos));
   normal = normalize(mat3(gbufferModelViewInverse) * normal);
   float lightDot = dot(lightDir, normal);
-  vec3 shadowAccum = vec3(0.0);
+  float shadowAccum = 0.0;
   const int samples = SHADOW_RANGE * SHADOW_RANGE;
-  if(lightmap.g > 0.01 && lightDot > 0.01) {
+  if(skylight > 0.01 && lightDot > 0.01) {
     float noise = ign(gl_FragCoord.xy);
 
+    //change from view space to shadow clip space
+
+    vec3 feetPlayerPos = (gbufferModelViewInverse * vec4(viewPos, 1.0)).xyz;
+    vec3 shadowViewPos = (shadowModelView * vec4(feetPlayerPos, 1.0)).xyz;
+    vec4 shadowClipPos = shadowProjection * vec4(shadowViewPos, 1.0);
+
     vec3 shadowViewNormal = mat3(shadowModelView) * normal;
-    vec4 shadowClipNormal = shadowProjection * vec4(shadowViewNormal, 1.0);
-    vec3 shadowNormal = shadowClipNormal.xyz / shadowClipNormal.w;
+    vec3 shadowNormal = (shadowProjection * vec4(shadowViewNormal, 1.0)).xyz;
     vec3 shadowSpaceScale = vec3(shadowProjection[0][0], shadowProjection[1][1], shadowProjection[2][2]);
 
     vec2 slidePlane = shadowViewNormal.xy / shadowViewNormal.z / shadowSpaceScale.xy * shadowSpaceScale.z;
 
+    
     for(int i = 0; i < samples; i++)
     {
       vec2 offset = vogelDiskOffset(i, samples, noise);
@@ -94,12 +95,22 @@ vec3 getSoftShadow(vec3 viewPos, vec2 lightmap, vec3 normal, vec3 lightPos)
       shadowScreenPos.xyz += shadowNormal * bias;
       shadowAccum += getShadow(shadowScreenPos);
     }
-
+    
+    /*
+    float bias = computeBias(shadowClipPos.xyz);
+    shadowClipPos.xyz = distortShadowPos(shadowClipPos.xyz);
+    
+    vec3 shadowScreenPos = shadowClipPos.xyz * 0.5 + 0.5;
+    
+    shadowScreenPos.xyz += shadowNormal * bias;
+    shadowAccum += getShadow(shadowScreenPos);
+    */
   }
   else {
-    shadowAccum = lightmap.g > 0.01 ? vec3(1.0) * clamp((lightDot + 1.0), 0.0, 1.0) : shadowAccum;
+    //shadowAccum = skylight > 0.01 ? vec3(1.0) * clamp((lightDot + 1.0), 0.0, 1.0) * skylight : shadowAccum;
     return shadowAccum;
   }
 
   return shadowAccum / float(samples);
 }
+

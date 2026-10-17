@@ -31,5 +31,5 @@ void main() {
   float dist = length(viewPos) / far;
   float fogFactor = pow(dist, 11.0 - FOG_DENSITY);
   
-  color.rgb = mix(color.rgb, pow(fogColor, vec3(2.2)), clamp(fogFactor, 0.0, 1.0));
+  color.rgb = mix(color.rgb, 2 * pow(fogColor, vec3(2.2)), clamp(fogFactor, 0.0, 1.0));
 }

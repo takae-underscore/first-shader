@@ -6,14 +6,11 @@ out vec4 glcolor;
 out vec3 worldPos;
 out vec3 eyePlayerPos;
 out vec3 viewPos;
-out vec3 normal;
+out vec3 normalFace;
 out mat3 tbnMatrix;
-out vec3 worldLightVector;
 
 uniform mat4 gbufferModelViewInverse;
 uniform vec3 eyePosition;
-uniform int worldTime;
-uniform vec3 shadowLightPosition;
 in vec4 at_tangent;
 
 #include "/lib/noise.glsl"
@@ -29,12 +26,10 @@ void main() {
   eyePlayerPos = mat3(gbufferModelViewInverse) * viewPos;
   worldPos = eyePlayerPos + eyePosition;
 
-  normal = gl_NormalMatrix * normalize(gl_Normal);
+  normalFace = gl_NormalMatrix * normalize(gl_Normal);
   vec4 tangent = vec4(gl_NormalMatrix * normalize(at_tangent.xyz), at_tangent.w);
-  vec3 bitangent = normalize(cross(tangent.xyz, normal) * tangent.w);
-  tbnMatrix = mat3(tangent.xyz, bitangent, normal);
-  
-  worldLightVector = normalize(shadowLightPosition);
+  vec3 bitangent = normalize(cross(tangent.xyz, normalFace) * tangent.w);
+  tbnMatrix = mat3(tangent.xyz, bitangent, normalFace);
 
   
   gl_Position = clipPos;

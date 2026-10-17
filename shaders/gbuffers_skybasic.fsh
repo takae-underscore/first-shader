@@ -24,5 +24,5 @@ void main() {
     color.rgb = mix(skyColor, fogColor, fogFactor);
   }
 
-  color.rgb = pow(color.rgb, vec3(2.2));
+  color.rgb = 2 * pow(color.rgb, vec3(2.2));
 }

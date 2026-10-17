@@ -11,7 +11,10 @@ in vec4 glcolor;
 layout(location = 0) out vec4 color;
 
 void main() {
-	color = texture(gtexture, texcoord) * glcolor;
+	color =  texture(gtexture, texcoord) * glcolor;
+
+  color.rgb = pow(color.rgb, vec3(2.2));
+  
   if (color.a < alphaTestRef) {
 		discard;
 	}

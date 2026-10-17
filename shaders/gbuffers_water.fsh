@@ -27,10 +27,13 @@ layout(location = 3) out vec4 specular;
 #include "/lib/noise.glsl"
 #include "/lib/settings.glsl"
 
-#if HIGH_QUALITY_NORMALS == 1
+#ifdef HIGH_QUALITY_NORMALS
   /*
   const int colortex2Format = RGB16;
   */
+#endif
+
+#ifdef REFLECTIONS
 #endif
 
 void main() {
@@ -44,7 +47,7 @@ void main() {
   vec3 normalTexture = texture(normals, texcoord).rgb;
   normalTexture = normalize(tbnMatrix * normalize((normalTexture - 0.5) * 2.0));
 
-  #if WAVES == 1
+  #ifdef WAVES
   float wave_motion = float(worldTime) * 0.005;
   float noiseOffset = 0.5;
   vec3 layer1 = 0.5 * texture(water, fract(worldPos.xz * 0.2 + wave_motion)).rgb;

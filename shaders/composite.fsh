@@ -150,13 +150,6 @@ void main() {
   color.rgb *= BLOCKLIGHT_INTENSITY * blocklight + skylightIntensity * skylight + AMBIENT_INTENSITY * ambient + worldlightIntensity * worldlight;
   #endif
   */
-  #if DEBUG_MODE == 1
-  color.rgb = vec3(lightmap, 0.0);
-  #endif
-  
-  #if DEBUG_MODE == 3
-  color.rgb = texture(colortex0, texcoord).rgb;
-  #endif
   
   #if DEBUG_MODE == 6
   color.rgb = texture(shadowtex0, texcoord).rgb;
